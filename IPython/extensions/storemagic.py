@@ -127,10 +127,9 @@ class StoreMagics(Magics):
                 raise UsageError('You must provide the variable to forget')
             else:
                 try:
-                    del db['autorestore/' + todel]
+                    del db[f'autorestore/{todel}']
                 except:
-                    raise UsageError("Can't delete variable '%s'" % todel)
-        # reset
+                    raise UsageError(f"Can't delete variable '{todel}'")
         elif 'z' in opts:
             for k in db.keys('autorestore/*'):
                 del db[k]
@@ -139,44 +138,34 @@ class StoreMagics(Magics):
             if args:
                 for arg in args:
                     try:
-                        obj = db['autorestore/' + arg]
+                        obj = db[f'autorestore/{arg}']
                     except KeyError:
-                        print("no stored variable %s" % arg)
+                        print(f"no stored variable {arg}")
                     else:
                         ip.user_ns[arg] = obj
             else:
                 restore_data(ip)
 
-        # run without arguments -> list variables & values
         elif not args:
             vars = db.keys('autorestore/*')
             vars.sort()
-            if vars:
-                size = max(map(len, vars))
-            else:
-                size = 0
-
+            size = max(map(len, vars)) if vars else 0
             print('Stored variables and their in-db values:')
-            fmt = '%-'+str(size)+'s -> %s'
+            fmt = f'%-{str(size)}s -> %s'
             get = db.get
             for var in vars:
                 justkey = os.path.basename(var)
                 # print 30 first characters from every var
                 print(fmt % (justkey, repr(get(var, '<unavailable>'))[:50]))
 
-        # default action - store the variable
         else:
             # %store foo >file.txt or >>file.txt
             if len(args) > 1 and args[1].startswith('>'):
                 fnam = os.path.expanduser(args[1].lstrip('>').lstrip())
-                if args[1].startswith('>>'):
-                    fil = open(fnam, 'a')
-                else:
-                    fil = open(fnam, 'w')
+                fil = open(fnam, 'a') if args[1].startswith('>>') else open(fnam, 'w')
                 with fil:
                     obj = ip.ev(args[0])
-                    print("Writing '%s' (%s) to file '%s'." % (args[0],
-                        obj.__class__.__name__, fnam))
+                    print(f"Writing '{args[0]}' ({obj.__class__.__name__}) to file '{fnam}'.")
 
                     if not isinstance (obj, str):
                         from pprint import pprint
@@ -197,12 +186,12 @@ class StoreMagics(Magics):
                 try:
                     cmd = ip.alias_manager.retrieve_alias(name)
                 except ValueError:
-                    raise UsageError("Unknown variable '%s'" % name)
-                
+                    raise UsageError(f"Unknown variable '{name}'")
+
                 staliases = db.get('stored_aliases',{})
                 staliases[name] = cmd
                 db['stored_aliases'] = staliases
-                print("Alias stored: %s (%s)" % (name, cmd))
+                print(f"Alias stored: {name} ({cmd})")
                 return
 
             else:
@@ -216,8 +205,8 @@ class StoreMagics(Magics):
                     """ % (args[0], obj) ))
                     return
                 #pickled = pickle.dumps(obj)
-                db[ 'autorestore/' + args[0] ] = obj
-                print("Stored '%s' (%s)" % (args[0], obj.__class__.__name__))
+                db[f'autorestore/{args[0]}'] = obj
+                print(f"Stored '{args[0]}' ({obj.__class__.__name__})")
 
 
 def load_ipython_extension(ip):

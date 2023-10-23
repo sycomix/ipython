@@ -102,10 +102,7 @@ def newline_or_execute_outer(shell):
 
         # If there's only one line, treat it as if the cursor is at the end.
         # See https://github.com/ipython/ipython/issues/10425
-        if d.line_count == 1:
-            check_text = d.text
-        else:
-            check_text = d.text[:d.cursor_position]
+        check_text = d.text if d.line_count == 1 else d.text[:d.cursor_position]
         status, indent = shell.check_complete(check_text)
 
         if not (d.on_last_line or
@@ -124,6 +121,7 @@ def newline_or_execute_outer(shell):
                 b.insert_text('\n' + indent)
             else:
                 b.insert_text('\n')
+
     return newline_or_execute
 
 

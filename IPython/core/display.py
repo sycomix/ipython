@@ -364,7 +364,7 @@ class DisplayHandle(object):
         self.display_id = display_id
 
     def __repr__(self):
-        return "<%s display_id=%s>" % (self.__class__.__name__, self.display_id)
+        return f"<{self.__class__.__name__} display_id={self.display_id}>"
 
     def display(self, obj, **kwargs):
         """Make a new display with my id, updating existing instances.
@@ -628,12 +628,10 @@ class DisplayObject(object):
         self._check_data()
 
     def __repr__(self):
-        if not self._show_mem_addr:
-            cls = self.__class__
-            r = "<%s.%s object>" % (cls.__module__, cls.__name__)
-        else:
-            r = super(DisplayObject, self).__repr__()
-        return r
+        if self._show_mem_addr:
+            return super(DisplayObject, self).__repr__()
+        cls = self.__class__
+        return f"<{cls.__module__}.{cls.__name__} object>"
 
     def _check_data(self):
         """Override in subclasses if there's something to check."""
@@ -641,10 +639,7 @@ class DisplayObject(object):
 
     def _data_and_metadata(self):
         """shortcut for returning metadata with shape information, if defined"""
-        if self.metadata:
-            return self.data, deepcopy(self.metadata)
-        else:
-            return self.data
+        return (self.data, deepcopy(self.metadata)) if self.metadata else self.data
 
     def reload(self):
         """Reload the raw data from file or URL."""
@@ -723,10 +718,7 @@ class Math(TextDisplayObject):
 
     def _repr_latex_(self):
         s = r"$\displaystyle %s$" % self.data.strip('$')
-        if self.metadata:
-            return s, deepcopy(self.metadata)
-        else:
-            return s
+        return (s, deepcopy(self.metadata)) if self.metadata else s
 
 
 class Latex(TextDisplayObject):
@@ -754,14 +746,8 @@ class SVG(DisplayObject):
         # parse into dom object
         from xml.dom import minidom
         x = minidom.parseString(svg)
-        # get svg tag (should be 1)
-        found_svg = x.getElementsByTagName('svg')
-        if found_svg:
+        if found_svg := x.getElementsByTagName('svg'):
             svg = found_svg[0].toxml()
-        else:
-            # fallback on the input, trust the user
-            # but this is probably an error.
-            pass
         svg = cast_unicode(svg)
         self._data = svg
     
@@ -789,14 +775,10 @@ class ProgressBar(DisplayObject):
         fraction = self.progress / self.total
         filled = '=' * int(fraction * self.text_width)
         rest = ' ' * (self.text_width - len(filled))
-        return '[{}{}] {}/{}'.format(
-            filled, rest,
-            self.progress, self.total,
-        )
+        return f'[{filled}{rest}] {self.progress}/{self.total}'
 
     def _repr_html_(self):
-        return "<progress style='width:{}' max='{}' value='{}'></progress>".format(
-            self.html_width, self.total, self.progress)
+        return f"<progress style='width:{self.html_width}' max='{self.total}' value='{self.progress}'></progress>"
 
     def display(self):
         display(self, display_id=self._display_id)
@@ -1028,9 +1010,7 @@ class Javascript(TextDisplayObject):
         super(Javascript, self).__init__(data=data, url=url, filename=filename)
 
     def _repr_javascript_(self):
-        r = ''
-        for c in self.css:
-            r += _css_t % c
+        r = ''.join(_css_t % c for c in self.css)
         for l in self.lib:
             r += _lib_t1 % l
         r += self.data
@@ -1165,21 +1145,20 @@ class Image(DisplayObject):
             ext = None
 
         if format is None:
-            if ext is not None:
-                if ext == u'jpg' or ext == u'jpeg':
-                    format = self._FMT_JPEG
-                elif ext == u'png':
-                    format = self._FMT_PNG
-                elif ext == u'gif':
-                    format = self._FMT_GIF
-                else:
-                    format = ext.lower()
-            elif isinstance(data, bytes):
-                # infer image type from image data header,
-                # only if format has not been specified.
-                if data[:2] == _JPEG:
-                    format = self._FMT_JPEG
-
+            if (
+                ext is not None
+                and ext in [u'jpg', u'jpeg']
+                or ext is None
+                and isinstance(data, bytes)
+                and data[:2] == _JPEG
+            ):
+                format = self._FMT_JPEG
+            elif ext is not None and ext == u'png':
+                format = self._FMT_PNG
+            elif ext is not None and ext == u'gif':
+                format = self._FMT_GIF
+            elif ext is not None:
+                format = ext.lower()
         # failed to detect format, default png
         if format is None:
             format = self._FMT_PNG
@@ -1192,7 +1171,7 @@ class Image(DisplayObject):
         self.embed = embed if embed is not None else (url is None)
 
         if self.embed and self.format not in self._ACCEPTABLE_EMBEDDINGS:
-            raise ValueError("Cannot embed the '%s' image format" % (self.format))
+            raise ValueError(f"Cannot embed the '{self.format}' image format")
         if self.embed:
             self._mimetype = self._MIMETYPES.get(self.format)
 
@@ -1257,22 +1236,20 @@ class Image(DisplayObject):
 
         Any new mimetype support should be implemented here.
         """
-        if self.embed:
-            mimetype = self._mimetype
-            data, metadata = self._data_and_metadata(always_both=True)
-            if metadata:
-                metadata = {mimetype: metadata}
-            return {mimetype: data}, metadata
-        else:
+        if not self.embed:
             return {'text/html': self._repr_html_()}
+        mimetype = self._mimetype
+        data, metadata = self._data_and_metadata(always_both=True)
+        if metadata:
+            metadata = {mimetype: metadata}
+        return {mimetype: data}, metadata
 
     def _data_and_metadata(self, always_both=False):
         """shortcut for returning metadata with shape information, if defined"""
         try:
             b64_data = b2a_base64(self.data).decode('ascii')
         except TypeError:
-            raise FileNotFoundError(
-                "No such file or directory: '%s'" % (self.data))
+            raise FileNotFoundError(f"No such file or directory: '{self.data}'")
         md = {}
         if self.metadata:
             md.update(self.metadata)
@@ -1282,10 +1259,7 @@ class Image(DisplayObject):
             md['height'] = self.height
         if self.unconfined:
             md['unconfined'] = self.unconfined
-        if md or always_both:
-            return b64_data, md
-        else:
-            return b64_data
+        return (b64_data, md) if md or always_both else b64_data
 
     def _repr_png_(self):
         if self.embed and self.format == self._FMT_PNG:
@@ -1298,11 +1272,7 @@ class Image(DisplayObject):
     def _find_ext(self, s):
         base, ext = splitext(s)
 
-        if not ext:
-            return base
-
-        # `splitext` includes leading period, so we skip it
-        return ext[1:].lower()
+        return base if not ext else ext[1:].lower()
 
 
 class Video(DisplayObject):
@@ -1390,11 +1360,11 @@ class Video(DisplayObject):
         # notebook output.
         if not self.embed:
             url = self.url if self.url is not None else self.filename
-            output = """<video src="{0}" controls {1} {2}>
+            return """<video src="{0}" controls {1} {2}>
       Your browser does not support the <code>video</code> element.
-    </video>""".format(url, width, height)
-            return output
-
+    </video>""".format(
+                url, width, height
+            )
         # Embedded videos are base64-encoded.
         mimetype = self.mimetype
         if self.filename is not None:
@@ -1411,11 +1381,12 @@ class Video(DisplayObject):
         else:
             b64_video = b2a_base64(video).decode('ascii').rstrip()
 
-        output = """<video controls {0} {1}>
+        return """<video controls {0} {1}>
  <source src="data:{2};base64,{3}" type="{2}">
  Your browser does not support the video tag.
- </video>""".format(width, height, mimetype, b64_video)
-        return output
+ </video>""".format(
+            width, height, mimetype, b64_video
+        )
 
     def reload(self):
         # TODO

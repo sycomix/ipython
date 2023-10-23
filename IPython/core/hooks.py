@@ -74,11 +74,10 @@ def editor(self, filename, linenum=None, wait=True):
 
     # Enclose in quotes if necessary and legal
     if ' ' in editor and os.path.isfile(editor) and editor[0] != '"':
-        editor = '"%s"' % editor
+        editor = f'"{editor}"'
 
     # Call the actual editor
-    proc = subprocess.Popen('%s %s %s' % (editor, linemark, filename),
-                            shell=True)
+    proc = subprocess.Popen(f'{editor} {linemark} {filename}', shell=True)
     if wait and proc.wait() != 0:
         raise TryNext()
 
@@ -110,12 +109,13 @@ https://github.com/ipython/ipython/issues/9649 """, UserWarning)
         t.write('%s:%d:%d:%s\n' % (filename,linenum,column,msg))
         t.flush()
         return t
+
     if os.path.basename(self.editor) != 'vim':
         self.hooks.editor(filename,linenum)
         return
     t = vim_quickfix_file()
     try:
-        if os.system('vim --cmd "set errorformat=%f:%l:%c:%m" -q ' + t.name):
+        if os.system(f'vim --cmd "set errorformat=%f:%l:%c:%m" -q {t.name}'):
             raise TryNext()
     finally:
         t.close()
@@ -133,10 +133,7 @@ class CommandChainDispatcher:
 
     """
     def __init__(self,commands=None):
-        if commands is None:
-            self.chain = []
-        else:
-            self.chain = commands
+        self.chain = [] if commands is None else commands
 
 
     def __call__(self,*args, **kw):
@@ -216,14 +213,13 @@ def clipboard_get(self):
         osx_clipboard_get, tkinter_clipboard_get,
         win32_clipboard_get
     )
-    if sys.platform == 'win32':
-        chain = [win32_clipboard_get, tkinter_clipboard_get]
-    elif sys.platform == 'darwin':
+    if sys.platform == 'darwin':
         chain = [osx_clipboard_get, tkinter_clipboard_get]
+    elif sys.platform == 'win32':
+        chain = [win32_clipboard_get, tkinter_clipboard_get]
     else:
         chain = [tkinter_clipboard_get]
     dispatcher = CommandChainDispatcher()
     for func in chain:
         dispatcher.add(func)
-    text = dispatcher()
-    return text
+    return dispatcher()

@@ -11,18 +11,18 @@ def test_alias_lifecycle():
     assert am.is_alias(name)
     nt.assert_equal(am.retrieve_alias(name), cmd)
     nt.assert_in((name, cmd), am.aliases)
-    
+
     # Test running the alias
     orig_system = _ip.system
     result = []
     _ip.system = result.append
     try:
-        _ip.run_cell('%{}'.format(name))
+        _ip.run_cell(f'%{name}')
         result = [c.strip() for c in result]
         nt.assert_equal(result, [cmd])
     finally:
         _ip.system = orig_system
-    
+
     # Test removing the alias
     am.undefine_alias(name)
     assert not am.is_alias(name)

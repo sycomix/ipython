@@ -101,10 +101,7 @@ class Audio(DisplayObject):
         if embed is False and url is None:
             raise ValueError("No url found. Expecting url when embed=False")
 
-        if url is not None and embed is not True:
-            self.embed = False
-        else:
-            self.embed = True
+        self.embed = url is None or embed is True
         self.autoplay = autoplay
         self.element_id = element_id
         super(Audio, self).__init__(data=data, url=url, filename=filename)
@@ -177,7 +174,7 @@ class Audio(DisplayObject):
     @staticmethod
     def _validate_and_normalize_without_numpy(data, normalize):
         try:
-            max_abs_value = float(max([abs(x) for x in data]))
+            max_abs_value = float(max(abs(x) for x in data))
         except TypeError:
             raise TypeError('Only lists of mono audio are '
                 'supported if numpy is not installed')
@@ -198,10 +195,7 @@ class Audio(DisplayObject):
         md = {}
         if self.url:
             md['url'] = self.url
-        if md:
-            return self.data, md
-        else:
-            return self.data
+        return (self.data, md) if md else self.data
 
     def _repr_html_(self):
         src = """
@@ -225,10 +219,7 @@ class Audio(DisplayObject):
             return ""
 
     def autoplay_attr(self):
-        if(self.autoplay):
-            return 'autoplay="autoplay"'
-        else:
-            return ''
+        return 'autoplay="autoplay"' if self.autoplay else ''
     
     def element_id_attr(self):
         if (self.element_id):
@@ -264,7 +255,7 @@ class IFrame(object):
                 from urllib.parse import urlencode # Py 3
             except ImportError:
                 from urllib import urlencode
-            params = "?" + urlencode(self.params)
+            params = f"?{urlencode(self.params)}"
         else:
             params = ""
         return self.iframe.format(src=self.src,
@@ -390,13 +381,11 @@ class FileLink(object):
     def _repr_html_(self):
         """return html link to file
         """
-        if not exists(self.path):
-            return ("Path (<tt>%s</tt>) doesn't exist. "
-                    "It may still be in the process of "
-                    "being generated, or you may have the "
-                    "incorrect path." % self.path)
-
-        return self._format_path()
+        return (
+            f"Path (<tt>{self.path}</tt>) doesn't exist. It may still be in the process of being generated, or you may have the incorrect path."
+            if not exists(self.path)
+            else self._format_path()
+        )
 
     def __repr__(self):
         """return absolute path to file
@@ -514,11 +503,7 @@ class FileLinks(FileLink):
                         splitext(fname)[1] in included_suffixes)):
                       display_fnames.append(fname)
 
-            if len(display_fnames) == 0:
-                # if there are no filenames to display, don't print anything
-                # (not even the directory name)
-                pass
-            else:
+            if display_fnames:
                 # otherwise print the formatted directory name followed by
                 # the formatted filenames
                 dirname_output_line = dirname_output_format % dirname
@@ -535,17 +520,19 @@ class FileLinks(FileLink):
                         fname_output_line = fname_output_format % fname
                     result.append(fname_output_line)
             return result
+
         return f
 
     def _get_notebook_display_formatter(self,
                                         spacer="&nbsp;&nbsp;"):
         """ generate function to use for notebook formatting
         """
-        dirname_output_format = \
-         self.result_html_prefix + "%s/" + self.result_html_suffix
+        dirname_output_format = (
+            f"{self.result_html_prefix}%s/{self.result_html_suffix}"
+        )
         fname_output_format = \
-         self.result_html_prefix + spacer + self.html_link_str + self.result_html_suffix
-        fp_format = self.url_prefix + '%s/%s'
+             self.result_html_prefix + spacer + self.html_link_str + self.result_html_suffix
+        fp_format = f'{self.url_prefix}%s/%s'
         if sep == "\\":
             # Working on a platform where the path separator is "\", so
             # must convert these to "/" for generating a URI
@@ -567,7 +554,7 @@ class FileLinks(FileLink):
         """ generate function to use for terminal formatting
         """
         dirname_output_format = "%s/"
-        fname_output_format = spacer + "%s"
+        fname_output_format = f"{spacer}%s"
         fp_format = '%s/%s'
 
         return self._get_display_formatter(dirname_output_format,
@@ -639,7 +626,7 @@ class Code(TextDisplayObject):
         from pygments import highlight
         from pygments.formatters import HtmlFormatter
         fmt = HtmlFormatter()
-        style = '<style>{}</style>'.format(fmt.get_style_defs('.output_html'))
+        style = f"<style>{fmt.get_style_defs('.output_html')}</style>"
         return style + highlight(self.data, self._get_lexer(), fmt)
 
     def _repr_latex_(self):

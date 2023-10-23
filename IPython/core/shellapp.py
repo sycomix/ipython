@@ -238,7 +238,7 @@ class InteractiveShellApp(Configurable):
             self.log.info("Enabling GUI event loop integration, "
                       "eventloop=%s, matplotlib=%s", gui, backend)
             if key == "auto":
-                print("Using matplotlib backend: %s" % backend)
+                print(f"Using matplotlib backend: {backend}")
         else:
             gui = r
             self.log.info("Enabling GUI event loop integration, "
@@ -257,7 +257,7 @@ class InteractiveShellApp(Configurable):
                 extensions.append(self.extra_extension)
             for ext in extensions:
                 try:
-                    self.log.info("Loading IPython extension: %s" % ext)
+                    self.log.info(f"Loading IPython extension: {ext}")
                     self.shell.extension_manager.load_extension(ext)
                 except:
                     if self.reraise_ipython_extension_failures:
@@ -300,8 +300,7 @@ class InteractiveShellApp(Configurable):
             self.log.debug("Running code from IPythonApp.exec_lines...")
             for line in self.exec_lines:
                 try:
-                    self.log.info("Running code in user namespace: %s" %
-                                  line)
+                    self.log.info(f"Running code in user namespace: {line}")
                     self.shell.run_cell(line, store_history=False)
                 except:
                     self.log.warning("Error in executing line in user "
@@ -323,8 +322,7 @@ class InteractiveShellApp(Configurable):
         sys.argv = [full_filename] + self.extra_args[1:]
         try:
             if os.path.isfile(full_filename):
-                self.log.info("Running file in user namespace: %s" %
-                              full_filename)
+                self.log.info(f"Running file in user namespace: {full_filename}")
                 # Ensure that __file__ is always defined to match Python
                 # behavior.
                 with preserve_keys(self.shell.user_ns, '__file__'):
@@ -389,17 +387,14 @@ class InteractiveShellApp(Configurable):
         if self.code_to_run:
             line = self.code_to_run
             try:
-                self.log.info("Running code given at command line (c=): %s" %
-                              line)
+                self.log.info(f"Running code given at command line (c=): {line}")
                 self.shell.run_cell(line, store_history=False)
             except:
-                self.log.warning("Error in executing line in user namespace: %s" %
-                              line)
+                self.log.warning(f"Error in executing line in user namespace: {line}")
                 self.shell.showtraceback()
                 if not self.interact:
                     self.exit(1)
 
-        # Like Python itself, ignore the second if the first of these is present
         elif self.file_to_run:
             fname = self.file_to_run
             if os.path.isdir(fname):

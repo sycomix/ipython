@@ -99,21 +99,19 @@ def parse_test_output(txt):
       number of errors and failures.
     """
 
-    err_m = re.search(r'^FAILED \(errors=(\d+)\)', txt, re.MULTILINE)
-    if err_m:
+    if err_m := re.search(r'^FAILED \(errors=(\d+)\)', txt, re.MULTILINE):
         nerr = int(err_m.group(1))
         nfail = 0
         return  nerr, nfail
 
-    fail_m = re.search(r'^FAILED \(failures=(\d+)\)', txt, re.MULTILINE)
-    if fail_m:
+    if fail_m := re.search(r'^FAILED \(failures=(\d+)\)', txt, re.MULTILINE):
         nerr = 0
         nfail = int(fail_m.group(1))
         return  nerr, nfail
 
-    both_m = re.search(r'^FAILED \(errors=(\d+), failures=(\d+)\)', txt,
-                       re.MULTILINE)
-    if both_m:
+    if both_m := re.search(
+        r'^FAILED \(errors=(\d+), failures=(\d+)\)', txt, re.MULTILINE
+    ):
         nerr = int(both_m.group(1))
         nfail = int(both_m.group(2))
         return  nerr, nfail

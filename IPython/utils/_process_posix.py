@@ -59,11 +59,11 @@ class ProcessHandler(object):
 
     @property
     def sh(self):
-        if self._sh is None:        
+        if self._sh is None:    
             self._sh = pexpect.which('sh')
-            if self._sh is None:
-                raise OSError('"sh" shell not found')
-        
+        if self._sh is None:
+            raise OSError('"sh" shell not found')
+
         return self._sh
 
     def __init__(self, logfile=None, read_timeout=None, terminate_timeout=None):
@@ -131,7 +131,7 @@ class ProcessHandler(object):
         """
         # Get likely encoding for the output.
         enc = DEFAULT_ENCODING
-        
+
         # Patterns to match on the output, for pexpect.  We read input and
         # allow either a short timeout or EOF
         patterns = [pexpect.TIMEOUT, pexpect.EOF]
@@ -186,18 +186,8 @@ class ProcessHandler(object):
         # add isalive check, to ensure exitstatus is set:
         child.isalive()
 
-        # We follow the subprocess pattern, returning either the exit status
-        # as a positive number, or the terminating signal as a negative
-        # number.
-        # on Linux, sh returns 128+n for signals terminating child processes on Linux
-        # on BSD (OS X), the signal code is set instead
         if child.exitstatus is None:
-            # on WIFSIGNALED, pexpect sets signalstatus, leaving exitstatus=None
-            if child.signalstatus is None:
-                # this condition may never occur,
-                # but let's be certain we always return an integer.
-                return 0
-            return -child.signalstatus
+            return 0 if child.signalstatus is None else -child.signalstatus
         if child.exitstatus > 128:
             return -(child.exitstatus - 128)
         return child.exitstatus

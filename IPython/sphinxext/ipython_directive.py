@@ -268,13 +268,11 @@ def block_parser(part, rgxin, rgxout, fmtin, fmtout):
             decorator = line_stripped
             continue
 
-        # does this look like an input line?
-        matchin = rgxin.match(line)
-        if matchin:
+        if matchin := rgxin.match(line):
             lineno, inputline = int(matchin.group(1)), matchin.group(2)
 
             # the ....: continuation string
-            continuation = '   %s:'%''.join(['.']*(len(str(lineno))+2))
+            continuation = f"   {''.join(['.'] * (len(str(lineno)) + 2))}:"
             Nc = len(continuation)
             # input lines can continue on for more than one line, if
             # we have a '\' line continuation char or a function call
@@ -313,10 +311,7 @@ def block_parser(part, rgxin, rgxout, fmtin, fmtout):
             block.append((INPUT, (decorator, inputline, '\n'.join(rest))))
             continue
 
-        # if it looks like an output line grab all the text to the end
-        # of the block
-        matchout = rgxout.match(line)
-        if matchout:
+        if matchout := rgxout.match(line):
             lineno, output = int(matchout.group(1)), matchout.group(2)
             if i<N-1:
                 output = '\n'.join([output] + lines[i:])
@@ -420,15 +415,15 @@ class EmbeddedSphinxShell(object):
         # as absolute path for Sphinx
         # sphinx expects a posix path, even on Windows
         posix_path = pathlib.Path(savefig_dir,filename).as_posix()
-        outfile = '/' + os.path.relpath(posix_path, source_dir)
+        outfile = f'/{os.path.relpath(posix_path, source_dir)}'
 
-        imagerows = ['.. image:: %s' % outfile]
+        imagerows = [f'.. image:: {outfile}']
 
         for kwarg in saveargs[2:]:
             arg, val = kwarg.split('=')
             arg = arg.strip()
             val = val.strip()
-            imagerows.append('   :%s: %s'%(arg, val))
+            imagerows.append(f'   :{arg}: {val}')
 
         image_file = os.path.basename(outfile) # only return file name
         image_directive = '\n'.join(imagerows)
@@ -446,12 +441,12 @@ class EmbeddedSphinxShell(object):
 
         is_verbatim = decorator=='@verbatim' or self.is_verbatim
         is_doctest = (decorator is not None and \
-                     decorator.startswith('@doctest')) or self.is_doctest
+                         decorator.startswith('@doctest')) or self.is_doctest
         is_suppress = decorator=='@suppress' or self.is_suppress
         is_okexcept = decorator=='@okexcept' or self.is_okexcept
         is_okwarning = decorator=='@okwarning' or self.is_okwarning
         is_savefig = decorator is not None and \
-                     decorator.startswith('@savefig')
+                         decorator.startswith('@savefig')
 
         input_lines = input.split('\n')
         if len(input_lines) > 1:
@@ -459,7 +454,7 @@ class EmbeddedSphinxShell(object):
                 input_lines.append('') # make sure there's a blank line
                                        # so splitter buffer gets reset
 
-        continuation = '   %s:'%''.join(['.']*(len(str(lineno))+2))
+        continuation = f"   {''.join(['.'] * (len(str(lineno)) + 2))}:"
 
         if is_savefig:
             image_file, image_directive = self.process_image(decorator)
@@ -468,11 +463,7 @@ class EmbeddedSphinxShell(object):
         is_semicolon = False
 
         # Hold the execution count, if requested to do so.
-        if is_suppress and self.hold_count:
-            store_history = False
-        else:
-            store_history = True
-
+        store_history = not is_suppress or not self.hold_count
         # Note: catch_warnings is not thread safe
         with warnings.catch_warnings(record=True) as ws:
             if input_lines[0].endswith(';'):
@@ -490,16 +481,16 @@ class EmbeddedSphinxShell(object):
         if not is_suppress:
             for i, line in enumerate(input_lines):
                 if i == 0:
-                    formatted_line = '%s %s'%(input_prompt, line)
+                    formatted_line = f'{input_prompt} {line}'
                 else:
-                    formatted_line = '%s %s'%(continuation, line)
+                    formatted_line = f'{continuation} {line}'
                 ret.append(formatted_line)
 
-        if not is_suppress and len(rest.strip()) and is_verbatim:
-            # The "rest" is the standard output of the input. This needs to be
-            # added when in verbatim mode. If there is no "rest", then we don't
-            # add it, as the new line will be added by the processed output.
-            ret.append(rest)
+            if len(rest.strip()) and is_verbatim:
+                # The "rest" is the standard output of the input. This needs to be
+                # added when in verbatim mode. If there is no "rest", then we don't
+                # add it, as the new line will be added by the processed output.
+                ret.append(rest)
 
         # Fetch the processed output. (This is not the submitted output.)
         self.cout.seek(0)
@@ -567,7 +558,7 @@ class EmbeddedSphinxShell(object):
             sys.stdout.write(processed_output)
             sys.stdout.write('<<<' + ('-' * 73) + '\n\n')
             if self.warning_is_error:
-                raise RuntimeError('Non Expected exception in `{}` line {}'.format(filename, lineno))
+                raise RuntimeError(f'Non Expected exception in `{filename}` line {lineno}')
 
         # output any warning raised during execution to stdout
         # unless :okwarning: has been specified.
@@ -583,7 +574,7 @@ class EmbeddedSphinxShell(object):
                 sys.stdout.write(s)
                 sys.stdout.write('<<<' + ('-' * 73) + '\n')
                 if self.warning_is_error:
-                    raise RuntimeError('Non Expected warning in `{}` line {}'.format(filename, lineno))
+                    raise RuntimeError(f'Non Expected warning in `{filename}` line {lineno}')
 
         self.cout.truncate(0)
         return (ret, input_lines, processed_output,
@@ -680,7 +671,7 @@ class EmbeddedSphinxShell(object):
         Saves the image file to disk.
         """
         self.ensure_pyplot()
-        command = 'plt.gcf().savefig("%s")'%image_file
+        command = f'plt.gcf().savefig("{image_file}")'
         #print 'SAVEFIG', command  # dbg
         self.process_input_line('bookmark ipy_thisdir', store_history=False)
         self.process_input_line('cd -b ipy_savedir', store_history=False)
@@ -820,9 +811,9 @@ class EmbeddedSphinxShell(object):
                 continue
 
             # deal with lines checking for multiline
-            continuation  = u'   %s:'% ''.join(['.']*(len(str(ct))+2))
+            continuation = f"   {''.join(['.'] * (len(str(ct)) + 2))}:"
             if not multiline:
-                modified = u"%s %s" % (fmtin % ct, line_stripped)
+                modified = f"{fmtin % ct} {line_stripped}"
                 output.append(modified)
                 ct += 1
                 try:
@@ -832,7 +823,7 @@ class EmbeddedSphinxShell(object):
                     multiline = True
                     multiline_start = lineno
             else: # still on a multiline
-                modified = u'%s %s' % (continuation, line)
+                modified = f'{continuation} {line}'
                 output.append(modified)
 
                 # if the next line is indented, it should be part of multiline
@@ -948,7 +939,7 @@ class IPythonDirective(Directive):
         # reset the execution count if we haven't processed this doc
         #NOTE: this may be borked if there are multiple seen_doc tmp files
         #check time stamp?
-        if not self.state.document.current_source in self.seen_docs:
+        if self.state.document.current_source not in self.seen_docs:
             self.shell.IP.history_manager.reset()
             self.shell.IP.execution_count = 1
             self.seen_docs.add(self.state.document.current_source)
@@ -964,8 +955,9 @@ class IPythonDirective(Directive):
         self.shell.warning_is_error = warning_is_error
 
         # setup bookmark for saving figures directory
-        self.shell.process_input_line('bookmark ipy_savedir %s'%savefig_dir,
-                                      store_history=False)
+        self.shell.process_input_line(
+            f'bookmark ipy_savedir {savefig_dir}', store_history=False
+        )
         self.shell.clear_cout()
 
         return rgxin, rgxout, promptin, promptout

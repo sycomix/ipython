@@ -93,10 +93,7 @@ def loaded_api():
     None, 'pyside2', 'pyside', 'pyqt', 'pyqt5', or 'pyqtv1'
     """
     if 'PyQt4.QtCore' in sys.modules:
-        if qtapi_version() == 2:
-            return QT_API_PYQT
-        else:
-            return QT_API_PYQTv1
+        return QT_API_PYQT if qtapi_version() == 2 else QT_API_PYQTv1
     elif 'PySide.QtCore' in sys.modules:
         return QT_API_PYSIDE
     elif 'PySide2.QtCore' in sys.modules:
@@ -128,7 +125,7 @@ def has_binding(api):
 
     for submod in required:
         try:
-            spec = find_spec('%s.%s' % (module_name, submod))
+            spec = find_spec(f'{module_name}.{submod}')
         except ImportError:
             # Package (e.g. PyQt5) not found
             return False
@@ -198,8 +195,9 @@ def import_pyqt4(version=2):
     from PyQt4 import QtGui, QtCore, QtSvg
 
     if not check_version(QtCore.PYQT_VERSION_STR, '4.7'):
-        raise ImportError("IPython requires PyQt4 >= 4.7, found %s" %
-                          QtCore.PYQT_VERSION_STR)
+        raise ImportError(
+            f"IPython requires PyQt4 >= 4.7, found {QtCore.PYQT_VERSION_STR}"
+        )
 
     # Alias PyQt-specific functions for PySide compatibility.
     QtCore.Signal = QtCore.pyqtSignal
@@ -298,8 +296,11 @@ def load_qt(api_options):
 
         if api not in loaders:
             raise RuntimeError(
-                "Invalid Qt API %r, valid values are: %s" %
-                (api, ", ".join(["%r" % k for k in loaders.keys()])))
+                (
+                    "Invalid Qt API %r, valid values are: %s"
+                    % (api, ", ".join(["%r" % k for k in loaders]))
+                )
+            )
 
         if not can_import(api):
             continue

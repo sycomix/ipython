@@ -37,10 +37,9 @@ def _get_conda_executable():
     R = re.compile(r"^#\s*cmd:\s*(?P<command>.*conda)\s[create|install]")
     with open(os.path.join(sys.prefix, 'conda-meta', 'history')) as f:
         for line in f:
-            match = R.match(line)
-            if match:
+            if match := R.match(line):
                 return match.groupdict()['command']
-    
+
     # Fallback: assume conda is available on the system path.
     return "conda"
 

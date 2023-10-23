@@ -369,8 +369,6 @@ class Pdb(OldPdb):
         except ImportError:
             import repr as reprlib  # Py 2
 
-        ret = []
-
         Colors = self.color_scheme_table.active_colors
         ColorsNormal = Colors.Normal
         tpl_link = u'%s%%s%s' % (Colors.filenameEm, ColorsNormal)
@@ -386,17 +384,12 @@ class Pdb(OldPdb):
             rv = frame.f_locals['__return__']
             #return_value += '->'
             return_value += reprlib.repr(rv) + '\n'
-        ret.append(return_value)
-
+        ret = [return_value]
         #s = filename + '(' + `lineno` + ')'
         filename = self.canonic(frame.f_code.co_filename)
         link = tpl_link % py3compat.cast_unicode(filename)
 
-        if frame.f_code.co_name:
-            func = frame.f_code.co_name
-        else:
-            func = "<lambda>"
-
+        func = frame.f_code.co_name if frame.f_code.co_name else "<lambda>"
         call = ''
         if func != '?':
             if '__args__' in frame.f_locals:
@@ -422,8 +415,8 @@ class Pdb(OldPdb):
         for i,line in enumerate(lines):
             show_arrow = (start + 1 + i == lineno)
             linetpl = (frame is self.curframe or show_arrow) \
-                      and tpl_line_em \
-                      or tpl_line
+                          and tpl_line_em \
+                          or tpl_line
             ret.append(self.__format_line(linetpl, filename,
                                           start + 1 + i, line,
                                           arrow = show_arrow) )
@@ -453,7 +446,7 @@ class Pdb(OldPdb):
         if arrow:
             # This is the line with the error
             pad = numbers_width - len(str(lineno)) - len(bp_mark)
-            num = '%s%s' % (make_arrow(pad), str(lineno))
+            num = f'{make_arrow(pad)}{str(lineno)}'
         else:
             num = '%*s' % (numbers_width - len(bp_mark), str(lineno))
 
@@ -562,7 +555,7 @@ class Pdb(OldPdb):
         p = self.__class__(completekey=self.completekey,
                            stdin=self.stdin, stdout=self.stdout)
         p.use_rawinput = self.use_rawinput
-        p.prompt = "(%s) " % self.prompt.strip()
+        p.prompt = f"({self.prompt.strip()}) "
         self.message("ENTERING RECURSIVE DEBUGGER")
         sys.call_tracing(p.run, (arg, globals, locals))
         self.message("LEAVING RECURSIVE DEBUGGER")

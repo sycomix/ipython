@@ -197,12 +197,10 @@ class IPythonTracebackLexer(DelegatingLexer):
         self.python3 = get_bool_opt(options, 'python3', False)
         if self.python3:
             self.aliases = ['ipython3tb']
+            IPyLexer = IPython3Lexer
         else:
             self.aliases = ['ipython2tb', 'ipythontb']
 
-        if self.python3:
-            IPyLexer = IPython3Lexer
-        else:
             IPyLexer = IPythonLexer
 
         DelegatingLexer.__init__(self, IPyLexer,
@@ -317,13 +315,8 @@ class IPythonConsoleLexer(Lexer):
 
         Lexer.__init__(self, **options)
 
-        if self.python3:
-            pylexer = IPython3Lexer
-            tblexer = IPythonTracebackLexer
-        else:
-            pylexer = IPythonLexer
-            tblexer = IPythonTracebackLexer
-
+        pylexer = IPython3Lexer if self.python3 else IPythonLexer
+        tblexer = IPythonTracebackLexer
         self.pylexer = pylexer(**options)
         self.tblexer = tblexer(**options)
 

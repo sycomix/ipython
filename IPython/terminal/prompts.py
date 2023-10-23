@@ -16,7 +16,7 @@ class Prompts(object):
     def vi_mode(self):
         if (getattr(self.shell.pt_app, 'editing_mode', None) == 'VI'
                 and self.shell.prompt_includes_vi_mode):
-            return '['+str(self.shell.pt_app.app.vi_state.input_mode)[3:6]+'] '
+            return f'[{str(self.shell.pt_app.app.vi_state.input_mode)[3:6]}] '
         return ''
 
 

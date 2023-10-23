@@ -305,10 +305,11 @@ class ExecutionInfo(object):
 
     def __repr__(self):
         name = self.__class__.__qualname__
-        raw_cell = ((self.raw_cell[:50] + '..')
-                    if len(self.raw_cell) > 50 else self.raw_cell)
+        raw_cell = (
+            f'{self.raw_cell[:50]}..' if len(self.raw_cell) > 50 else self.raw_cell
+        )
         return '<%s object at %x, raw_cell="%s" store_history=%s silent=%s shell_futures=%s>' %\
-               (name, id(self), raw_cell, self.store_history, self.silent, self.shell_futures)
+                   (name, id(self), raw_cell, self.store_history, self.silent, self.shell_futures)
 
 
 class ExecutionResult(object):
@@ -716,10 +717,7 @@ class InteractiveShell(SingletonConfigurable):
         """Set the autoindent flag.
 
         If called with no arguments, it acts as a toggle."""
-        if value is None:
-            self.autoindent = not self.autoindent
-        else:
-            self.autoindent = value
+        self.autoindent = not self.autoindent if value is None else value
 
     #-------------------------------------------------------------------------
     # init_* methods called by __init__
@@ -804,9 +802,9 @@ class InteractiveShell(SingletonConfigurable):
         """Initialize logging in case it was requested at the command line.
         """
         if self.logappend:
-            self.magic('logstart %s append' % self.logappend)
+            self.magic(f'logstart {self.logappend} append')
         elif self.logfile:
-            self.magic('logstart %s' % self.logfile)
+            self.magic(f'logstart {self.logfile}')
         elif self.logstart:
             self.magic('logstart')
 
@@ -1033,12 +1031,11 @@ class InteractiveShell(SingletonConfigurable):
 
         dp = getattr(self.hooks, name, None)
         if name not in IPython.core.hooks.__all__:
-            print("Warning! Hook '%s' is not one of %s" % \
-                  (name, IPython.core.hooks.__all__ ))
+            print(f"Warning! Hook '{name}' is not one of {IPython.core.hooks.__all__}")
 
         if _warn_deprecated and (name in IPython.core.hooks.deprecated):
             alternative = IPython.core.hooks.deprecated[name]
-            warn("Hook {} is deprecated. Use {} instead.".format(name, alternative), stacklevel=2)
+            warn(f"Hook {name} is deprecated. Use {alternative} instead.", stacklevel=2)
 
         if not dp:
             dp = IPython.core.hooks.CommandChainDispatcher()
@@ -1366,23 +1363,16 @@ class InteractiveShell(SingletonConfigurable):
 
         # For more details:
         # http://mail.python.org/pipermail/python-dev/2001-April/014068.html
-        ns = {}
-        
-        # make global variables for user access to the histories
-        ns['_ih'] = self.history_manager.input_hist_parsed
-        ns['_oh'] = self.history_manager.output_hist
-        ns['_dh'] = self.history_manager.dir_hist
-
-        # user aliases to input and output histories.  These shouldn't show up
-        # in %who, as they can have very large reprs.
-        ns['In']  = self.history_manager.input_hist_parsed
-        ns['Out'] = self.history_manager.output_hist
-
-        # Store myself as the public api!!!
-        ns['get_ipython'] = self.get_ipython
-        
-        ns['exit'] = self.exiter
-        ns['quit'] = self.exiter
+        ns = {
+            '_ih': self.history_manager.input_hist_parsed,
+            '_oh': self.history_manager.output_hist,
+            '_dh': self.history_manager.dir_hist,
+            'In': self.history_manager.input_hist_parsed,
+            'Out': self.history_manager.output_hist,
+            'get_ipython': self.get_ipython,
+            'exit': self.exiter,
+            'quit': self.exiter,
+        }
 
         # Sync what we've added so far to user_ns_hidden so these aren't seen
         # by %who
@@ -1473,21 +1463,21 @@ class InteractiveShell(SingletonConfigurable):
             namespace, and delete references to it.
         """
         if varname in ('__builtin__', '__builtins__'):
-            raise ValueError("Refusing to delete %s" % varname)
+            raise ValueError(f"Refusing to delete {varname}")
 
         ns_refs = self.all_ns_refs
-        
+
         if by_name:                    # Delete by name
             for ns in ns_refs:
                 try:
                     del ns[varname]
                 except KeyError:
                     pass
-        else:                         # Delete by object
+        else:                     # Delete by object
             try:
                 obj = self.user_ns[varname]
             except KeyError:
-                raise NameError("name '%s' is not defined" % varname)
+                raise NameError(f"name '{varname}' is not defined")
             # Also check in output history
             ns_refs.append(self.history_manager.output_hist)
             for ns in ns_refs:
@@ -1548,18 +1538,14 @@ class InteractiveShell(SingletonConfigurable):
         if isinstance(variables, dict):
             vdict = variables
         elif isinstance(variables, (str, list, tuple)):
-            if isinstance(variables, str):
-                vlist = variables.split()
-            else:
-                vlist = variables
+            vlist = variables.split() if isinstance(variables, str) else variables
             vdict = {}
             cf = sys._getframe(1)
             for name in vlist:
                 try:
                     vdict[name] = eval(name, cf.f_globals, cf.f_locals)
                 except:
-                    print('Could not get variable %s from %s' %
-                           (name,cf.f_code.co_name))
+                    print(f'Could not get variable {name} from {cf.f_code.co_name}')
         else:
             raise ValueError('variables must be a dict/str/list/tuple')
 
@@ -1756,7 +1742,7 @@ class InteractiveShell(SingletonConfigurable):
             else:
                 pmethod(info.obj, oname)
         else:
-            print('Object `%s` not found.' % oname)
+            print(f'Object `{oname}` not found.')
             return 'not found'  # so callers can take other action
 
     def object_inspect(self, oname, detail_level=0):
@@ -1960,19 +1946,15 @@ class InteractiveShell(SingletonConfigurable):
         
         raises ValueError if none of these contain any information
         """
-        if exc_tuple is None:
-            etype, value, tb = sys.exc_info()
-        else:
-            etype, value, tb = exc_tuple
-
+        etype, value, tb = sys.exc_info() if exc_tuple is None else exc_tuple
         if etype is None:
             if hasattr(sys, 'last_type'):
                 etype, value, tb = sys.last_type, sys.last_value, \
-                                   sys.last_traceback
-        
+                                       sys.last_traceback
+
         if etype is None:
             raise ValueError("No exception to find")
-        
+
         # Now store the exception info in sys.last_type etc.
         # WARNING: these variables are somewhat deprecated and not
         # necessarily safe to use in a threaded environment, but tools
@@ -1981,7 +1963,7 @@ class InteractiveShell(SingletonConfigurable):
         sys.last_type = etype
         sys.last_value = value
         sys.last_traceback = tb
-        
+
         return etype, value, tb
     
     def show_usage_error(self, exc):
@@ -1989,7 +1971,7 @@ class InteractiveShell(SingletonConfigurable):
         
         These are special exceptions that shouldn't show a traceback.
         """
-        print("UsageError: %s" % exc, file=sys.stderr)
+        print(f"UsageError: {exc}", file=sys.stderr)
     
     def get_exception_only(self, exc_tuple=None):
         """
@@ -2341,14 +2323,14 @@ class InteractiveShell(SingletonConfigurable):
                 message += ' Did you mean the line magic %{0} (single %)?'.format(magic_name)
             raise UsageError(message)
         else:
-            # Note: this is the distance in the stack to the user's frame.
-            # This will need to be updated if the internal calling logic gets
-            # refactored, or else we'll be expanding the wrong variables.
-            stack_depth = 2
             if getattr(fn, magic.MAGIC_NO_VAR_EXPAND_ATTR, False):
                 # magic has opted out of var_expand
                 magic_arg_s = line
             else:
+                # Note: this is the distance in the stack to the user's frame.
+                # This will need to be updated if the internal calling logic gets
+                # refactored, or else we'll be expanding the wrong variables.
+                stack_depth = 2
                 magic_arg_s = self.var_expand(line, stack_depth)
             kwargs = {}
             if getattr(fn, "needs_local_scope", False):
@@ -2467,7 +2449,7 @@ class InteractiveShell(SingletonConfigurable):
             from IPython.utils._process_win32 import AvoidUNCPath
             with AvoidUNCPath() as path:
                 if path is not None:
-                    cmd = '"pushd %s &&"%s' % (path, cmd)
+                    cmd = f'"pushd {path} &&"{cmd}'
                 try:
                     ec = os.system(cmd)
                 except KeyboardInterrupt:
@@ -2493,7 +2475,7 @@ class InteractiveShell(SingletonConfigurable):
                 ec = 130
             if ec > 128:
                 ec = -(ec - 128)
-        
+
         # We explicitly do NOT return the subprocess status code, because
         # a non-None value would trigger :func:`sys.displayhook` calls.
         # Instead, we store the exit_code in user_ns.  Note the semantics
@@ -2527,10 +2509,7 @@ class InteractiveShell(SingletonConfigurable):
             # this is *far* from a rigorous test
             raise OSError("Background processes not supported.")
         out = getoutput(self.var_expand(cmd, depth=depth+1))
-        if split:
-            out = SList(out.splitlines())
-        else:
-            out = LSString(out)
+        out = SList(out.splitlines()) if split else LSString(out)
         return out
 
     #-------------------------------------------------------------------------
@@ -2588,7 +2567,7 @@ class InteractiveShell(SingletonConfigurable):
             return
 
         # This is overridden in TerminalInteractiveShell to use fancy prompts
-        print("------> " + cmd)
+        print(f"------> {cmd}")
 
     #-------------------------------------------------------------------------
     # Things related to extracting values/expressions from kernel and user_ns
@@ -2602,15 +2581,13 @@ class InteractiveShell(SingletonConfigurable):
         
         etype, evalue, tb = self._get_exc_info()
         stb = self.InteractiveTB.get_exception_only(etype, evalue)
-        
-        exc_info = {
-            u'status' : 'error',
-            u'traceback' : stb,
-            u'ename' : etype.__name__,
-            u'evalue' : py3compat.safe_unicode(evalue),
-        }
 
-        return exc_info
+        return {
+            u'status': 'error',
+            u'traceback': stb,
+            u'ename': etype.__name__,
+            u'evalue': py3compat.safe_unicode(evalue),
+        }
     
     def _format_user_obj(self, obj):
         """format a user object to display dict
@@ -2619,12 +2596,11 @@ class InteractiveShell(SingletonConfigurable):
         """
         
         data, md = self.display_formatter.format(obj)
-        value = {
-            'status' : 'ok',
-            'data' : data,
-            'metadata' : md,
+        return {
+            'status': 'ok',
+            'data': data,
+            'metadata': md,
         }
-        return value
     
     def user_expressions(self, expressions):
         """Evaluate a dict of expressions in the user's namespace.
@@ -2703,7 +2679,7 @@ class InteractiveShell(SingletonConfigurable):
             with open(fname):
                 pass
         except:
-            warn('Could not open file <%s> for safe execution.' % fname)
+            warn(f'Could not open file <{fname}> for safe execution.')
             return
 
         # Find things also in current directory.  This is needed to mimic the
@@ -2761,14 +2737,14 @@ class InteractiveShell(SingletonConfigurable):
             with open(fname):
                 pass
         except:
-            warn('Could not open file <%s> for safe execution.' % fname)
+            warn(f'Could not open file <{fname}> for safe execution.')
             return
 
         # Find things also in current directory.  This is needed to mimic the
         # behavior of running a script from the system command line, where
         # Python inserts the script's directory into sys.path
         dname = os.path.dirname(fname)
-        
+
         def get_cells():
             """generator for sequence of code blocks to run"""
             if fname.endswith('.ipynb'):
@@ -2795,7 +2771,7 @@ class InteractiveShell(SingletonConfigurable):
                 if raise_exceptions:
                     raise
                 self.showtraceback()
-                warn('Unknown failure executing file: <%s>' % fname)
+                warn(f'Unknown failure executing file: <{fname}>')
 
     def safe_run_module(self, mod_name, where):
         """A safe version of runpy.run_module().
@@ -2823,7 +2799,7 @@ class InteractiveShell(SingletonConfigurable):
                     raise
         except:
             self.showtraceback()
-            warn('Unknown failure executing module: <%s>' % mod_name)
+            warn(f'Unknown failure executing module: <{mod_name}>')
 
     def run_cell(self, raw_cell, store_history=False, silent=False, shell_futures=True):
         """Run a complete IPython cell.
@@ -3191,11 +3167,7 @@ class InteractiveShell(SingletonConfigurable):
 
         _async = False
         if interactivity == 'last_expr':
-            if isinstance(nodelist[-1], ast.Expr):
-                interactivity = "last"
-            else:
-                interactivity = "none"
-
+            interactivity = "last" if isinstance(nodelist[-1], ast.Expr) else "none"
         if interactivity == 'none':
             to_run_exec, to_run_interactive = nodelist, []
         elif interactivity == 'last':
@@ -3538,9 +3510,7 @@ class InteractiveShell(SingletonConfigurable):
         sys.stderr.write(data)
 
     def ask_yes_no(self, prompt, default=None, interrupt=None):
-        if self.quiet:
-            return True
-        return ask_yes_no(prompt,default,interrupt)
+        return True if self.quiet else ask_yes_no(prompt,default,interrupt)
 
     def show_usage(self):
         """Show a usage message"""
@@ -3603,8 +3573,7 @@ class InteractiveShell(SingletonConfigurable):
         to an object of another type. In each case, .args[0] is a printable
         message.
         """
-        code = self.extract_input_lines(target, raw=raw)  # Grab history
-        if code:
+        if code := self.extract_input_lines(target, raw=raw):
             return code
         try:
             if target.startswith(('http://', 'https://')):
@@ -3615,7 +3584,7 @@ class InteractiveShell(SingletonConfigurable):
                 from urllib.request import urlopen
                 response = urlopen(target)
                 return response.read().decode('latin1')
-            raise ValueError(("'%s' seem to be unreadable.") % target)
+            raise ValueError(f"'{target}' seem to be unreadable.")
 
         potential_target = [target]
         try :
@@ -3623,17 +3592,17 @@ class InteractiveShell(SingletonConfigurable):
         except IOError:
             pass
 
-        for tgt in potential_target :
-            if os.path.isfile(tgt):                        # Read file
-                try :
+        for tgt in potential_target:
+            if os.path.isfile(tgt):                # Read file
+                try:
                     return openpy.read_py_file(tgt, skip_encoding_cookie=skip_encoding_cookie)
-                except UnicodeDecodeError :
+                except UnicodeDecodeError:
                     if not py_only :
                         with io_open(tgt,'r', encoding='latin1') as f :
                             return f.read()
-                    raise ValueError(("'%s' seem to be unreadable.") % target)
+                    raise ValueError(f"'{target}' seem to be unreadable.")
             elif os.path.isdir(os.path.expanduser(tgt)):
-                raise ValueError("'%s' is a directory, not a regular file." % target)
+                raise ValueError(f"'{target}' is a directory, not a regular file.")
 
         if search_ns:
             # Inspect namespace to load object source
@@ -3644,16 +3613,16 @@ class InteractiveShell(SingletonConfigurable):
         try:                                              # User namespace
             codeobj = eval(target, self.user_ns)
         except Exception:
-            raise ValueError(("'%s' was not found in history, as a file, url, "
-                                "nor in the user namespace.") % target)
+            raise ValueError(
+                f"'{target}' was not found in history, as a file, url, nor in the user namespace."
+            )
 
         if isinstance(codeobj, str):
             return codeobj
         elif isinstance(codeobj, Macro):
             return codeobj.value
 
-        raise TypeError("%s is neither a string nor a macro." % target,
-                        codeobj)
+        raise TypeError(f"{target} is neither a string nor a macro.", codeobj)
 
     #-------------------------------------------------------------------------
     # Things related to IPython exiting

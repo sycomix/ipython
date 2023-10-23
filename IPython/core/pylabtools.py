@@ -77,7 +77,7 @@ def getfigs(*fig_nums):
         for num in fig_nums:
             f = Gcf.figs.get(num)
             if f is None:
-                print('Warning: figure %s not available.' % num)
+                print(f'Warning: figure {num} not available.')
             else:
                 figs.append(f.canvas.figure)
         return figs
@@ -229,17 +229,16 @@ def select_figure_formats(shell, formats, **kwargs):
 
     [ f.pop(Figure, None) for f in shell.display_formatter.formatters.values() ]
     mplbackend = matplotlib.get_backend().lower()
-    if mplbackend == 'nbagg' or mplbackend == 'module://ipympl.backend_nbagg':
+    if mplbackend in ['nbagg', 'module://ipympl.backend_nbagg']:
         formatter = shell.display_formatter.ipython_display_formatter
         formatter.for_type(Figure, _reshow_nbagg_figure)
 
     supported = {'png', 'png2x', 'retina', 'jpg', 'jpeg', 'svg', 'pdf'}
-    bad = formats.difference(supported)
-    if bad:
-        bs = "%s" % ','.join([repr(f) for f in bad])
-        gs = "%s" % ','.join([repr(f) for f in supported])
-        raise ValueError("supported formats are: %s not %s" % (gs, bs))
-    
+    if bad := formats.difference(supported):
+        bs = f"{','.join([repr(f) for f in bad])}"
+        gs = f"{','.join([repr(f) for f in supported])}"
+        raise ValueError(f"supported formats are: {gs} not {bs}")
+
     if 'png' in formats:
         png_formatter.for_type(Figure, lambda fig: print_figure(fig, 'png', **kwargs))
     if 'retina' in formats or 'png2x' in formats:
@@ -383,19 +382,15 @@ def configure_inline_support(shell, backend):
     if cfg not in shell.configurables:
         shell.configurables.append(cfg)
 
+    from ipykernel.pylab.backend_inline import flush_figures
     if backend == backends['inline']:
-        from ipykernel.pylab.backend_inline import flush_figures
         shell.events.register('post_execute', flush_figures)
 
-        # Save rcParams that will be overwrittern
-        shell._saved_rcParams = {}
-        for k in cfg.rc:
-            shell._saved_rcParams[k] = matplotlib.rcParams[k]
+        shell._saved_rcParams = {k: matplotlib.rcParams[k] for k in cfg.rc}
         # load inline_rc
         matplotlib.rcParams.update(cfg.rc)
         new_backend_name = "inline"
     else:
-        from ipykernel.pylab.backend_inline import flush_figures
         try:
             shell.events.unregister('post_execute', flush_figures)
         except ValueError:

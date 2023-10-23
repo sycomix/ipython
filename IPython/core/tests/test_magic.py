@@ -156,12 +156,9 @@ def test_magic_parse_options():
     ip = get_ipython()
     path = 'c:\\x'
     m = DummyMagics(ip)
-    opts = m.parse_options('-f %s' % path,'f:')[0]
+    opts = m.parse_options(f'-f {path}', 'f:')[0]
     # argv splitting is os-dependent
-    if os.name == 'posix':
-        expected = 'c:x'
-    else:
-        expected = path
+    expected = 'c:x' if os.name == 'posix' else path
     nt.assert_equal(opts['f'], expected)
 
 def test_magic_parse_long_options():
@@ -281,7 +278,7 @@ def test_hist_pof():
     #raise Exception(list(ip.history_manager._get_range_session()))
     with TemporaryDirectory() as td:
         tf = os.path.join(td, 'hist.py')
-        ip.run_line_magic('history', '-pof %s' % tf)
+        ip.run_line_magic('history', f'-pof {tf}')
         assert os.path.isfile(tf)
 
 
@@ -357,7 +354,7 @@ def test_reset_in():
 def test_reset_dhist():
     "Test '%reset dhist' magic"
     _ip.run_cell("tmp = [d for d in _dh]") # copy before clearing
-    _ip.magic('cd ' + os.path.dirname(nt.__file__))
+    _ip.magic(f'cd {os.path.dirname(nt.__file__)}')
     _ip.magic('cd -')
     nt.assert_true(len(_ip.user_ns['_dh']) > 0)
     _ip.magic('reset -f dhist')
@@ -498,11 +495,11 @@ def test_dirops():
     startdir = os.getcwd()
     ipdir = os.path.realpath(_ip.ipython_dir)
     try:
-        _ip.magic('cd "%s"' % ipdir)
+        _ip.magic(f'cd "{ipdir}"')
         nt.assert_equal(curpath(), ipdir)
         _ip.magic('cd -')
         nt.assert_equal(curpath(), startdir)
-        _ip.magic('pushd "%s"' % ipdir)
+        _ip.magic(f'pushd "{ipdir}"')
         nt.assert_equal(curpath(), ipdir)
         _ip.magic('popd')
         nt.assert_equal(curpath(), startdir)
@@ -520,7 +517,7 @@ def test_cd_force_quiet():
 
     try:
         with tt.AssertNotPrints(ipdir):
-            osmagics.cd('"%s"' % ipdir)
+            osmagics.cd(f'"{ipdir}"')
         with tt.AssertNotPrints(startdir):
             osmagics.cd('-')
     finally:
@@ -530,7 +527,7 @@ def test_cd_force_quiet():
 def test_xmode():
     # Calling xmode three times should be a no-op
     xmode = _ip.InteractiveTB.mode
-    for i in range(4):
+    for _ in range(4):
         _ip.magic("xmode")
     nt.assert_equal(_ip.InteractiveTB.mode, xmode)
     
@@ -559,15 +556,15 @@ class TestXdel(tt.TempFileMixin):
                "a = A()\n")
         self.mktmp(src)
         # %run creates some hidden references...
-        _ip.magic("run %s" % self.fname)
+        _ip.magic(f"run {self.fname}")
         # ... as does the displayhook.
         _ip.run_cell("a")
-        
+
         monitor = _ip.user_ns["A"].monitor
         nt.assert_equal(monitor, [])
-        
+
         _ip.magic("xdel a")
-        
+
         # Check that a's __del__ method has been called.
         nt.assert_equal(monitor, [1])
 
@@ -725,7 +722,7 @@ def test_notebook_export_json():
         _ip.history_manager.store_inputs(i, cmd)
     with TemporaryDirectory() as td:
         outfile = os.path.join(td, "nb.ipynb")
-        _ip.magic("notebook -e %s" % outfile)
+        _ip.magic(f"notebook -e {outfile}")
 
 
 class TestEnv(TestCase):
@@ -784,7 +781,7 @@ class CellMagicTestCase(TestCase):
         out = _ip.run_cell_magic(magic, 'a', 'b')
         nt.assert_equal(out, ('a','b'))
         # Via run_cell, it goes into the user's namespace via displayhook
-        _ip.run_cell('%%' + magic +' c\nd\n')
+        _ip.run_cell(f'%%{magic}' + ' c\nd\n')
         nt.assert_equal(_ip.user_ns['_'], ('c','d\n'))
 
     def test_cell_magic_func_deco(self):
@@ -912,10 +909,16 @@ def test_file_amend():
             'line1',
             'line2',
         ]))
-        ip.run_cell_magic("writefile", "-a %s" % fname, u'\n'.join([
-            'line3',
-            'line4',
-        ]))
+        ip.run_cell_magic(
+            "writefile",
+            f"-a {fname}",
+            u'\n'.join(
+                [
+                    'line3',
+                    'line4',
+                ]
+            ),
+        )
         with open(fname) as f:
             s = f.read()
         nt.assert_in('line1\n', s)
@@ -926,10 +929,16 @@ def test_file_spaces():
     ip = get_ipython()
     with TemporaryWorkingDirectory() as td:
         fname = "file name"
-        ip.run_cell_magic("file", '"%s"'%fname, u'\n'.join([
-            'line1',
-            'line2',
-        ]))
+        ip.run_cell_magic(
+            "file",
+            f'"{fname}"',
+            u'\n'.join(
+                [
+                    'line1',
+                    'line2',
+                ]
+            ),
+        )
         with open(fname) as f:
             s = f.read()
         nt.assert_in('line1\n', s)
@@ -1001,12 +1010,10 @@ class FooFoo(Magics):
     @line_magic('foo')
     def line_foo(self, line):
         "I am line foo"
-        pass
 
     @cell_magic("foo")
     def cell_foo(self, line, cell):
         "I am cell foo, not line foo"
-        pass
 
 def test_line_cell_info():
     """%%foo and %foo magics are distinguishable to inspect"""
@@ -1070,12 +1077,12 @@ def test_save():
         ip.history_manager.store_inputs(i, cmd)
     with TemporaryDirectory() as tmpdir:
         file = os.path.join(tmpdir, "testsave.py")
-        ip.run_line_magic("save", "%s 1-10" % file)
+        ip.run_line_magic("save", f"{file} 1-10")
         with open(file) as f:
             content = f.read()
             nt.assert_equal(content.count(cmds[0]), 1)
             nt.assert_in('coding: utf-8', content)
-        ip.run_line_magic("save", "-a %s 1-10" % file)
+        ip.run_line_magic("save", f"-a {file} 1-10")
         with open(file) as f:
             content = f.read()
             nt.assert_equal(content.count(cmds[0]), 2)
@@ -1178,8 +1185,7 @@ def test_logging_magic_quiet_from_arg():
     with TemporaryDirectory() as td:
         try:
             with tt.AssertNotPrints(re.compile("Activating.*")):
-                lm.logstart('-q {}'.format(
-                        os.path.join(td, "quiet_from_arg.log")))
+                lm.logstart(f'-q {os.path.join(td, "quiet_from_arg.log")}')
         finally:
             _ip.logger.logstop()
 
